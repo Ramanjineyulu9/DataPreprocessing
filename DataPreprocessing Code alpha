@@ -1,0 +1,114 @@
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.impute import SimpleImputer
+import pandas as pd
+import numpy as np
+data = pd.read_csv("C:/nodejs scripts/data.csv")
+import seaborn as sns
+numeric_df = data.select_dtypes(include=['float', 'int'])
+sns.heatmap(numeric_df, annot=True)
+<Axes: >
+
+
+data.head()
+course_id	course_title	Unnamed: 2	is_paid	price	num_subscribers	num_reviews	num_lectures	level	content_duration	published_timestamp	subject
+0	1070968	Ultimate Investment Banking Course	NaN	True	200	2147	23	51	All Levels	1.5	2017-01-18T20:58:58Z	Business Finance
+1	1113822	Complete GST Course & Certification - Grow You...	NaN	True	75	2792	923	274	All Levels	39.0	2017-03-09T16:34:20Z	Business Finance
+2	1006314	Financial Modeling for Business Analysts and C...	NaN	True	45	2174	74	51	Intermediate Level	2.5	2016-12-19T19:26:30Z	Business Finance
+3	1210588	Beginner to Pro - Financial Analysis in Excel ...	NaN	True	95	2451	11	36	All Levels	3.0	2017-05-30T20:07:24Z	Business Finance
+4	1011058	How To Maximize Your Profits Trading Options	NaN	True	200	1276	45	26	Intermediate Level	2.0	2016-12-13T14:57:18Z	Business Finance
+df = data.dropna()
+df= data.fillna(0)
+df
+course_id	course_title	Unnamed: 2	is_paid	price	num_subscribers	num_reviews	num_lectures	level	content_duration	published_timestamp	subject
+0	1070968	Ultimate Investment Banking Course	0.0	True	2.378213	2147	23	51	All Levels	1.5	2017-01-18T20:58:58Z	Business Finance
+2	1006314	Financial Modeling for Business Analysts and C...	0.0	True	-0.282312	2174	74	51	Intermediate Level	2.5	2016-12-19T19:26:30Z	Business Finance
+3	1210588	Beginner to Pro - Financial Analysis in Excel ...	0.0	True	0.575922	2451	11	36	All Levels	3.0	2017-05-30T20:07:24Z	Business Finance
+4	1011058	How To Maximize Your Profits Trading Options	0.0	True	2.378213	1276	45	26	Intermediate Level	2.0	2016-12-13T14:57:18Z	Business Finance
+5	192870	Trading Penny Stocks: A Guide for All Levels I...	0.0	True	1.519979	9221	138	25	All Levels	3.0	2014-05-02T15:13:30Z	Business Finance
+...	...	...	...	...	...	...	...	...	...	...	...	...
+3673	775618	Learn jQuery from Scratch - Master of JavaScri...	0.0	True	0.661746	1040	14	21	All Levels	2.0	2016-06-14T17:36:46Z	Web Development
+3674	1088178	How To Design A WordPress Website With No Codi...	0.0	True	-0.625605	306	3	42	Beginner Level	3.5	2017-03-10T22:24:30Z	Web Development
+3675	635248	Learn and Build using Polymer	0.0	True	-0.368135	513	169	48	All Levels	3.5	2015-12-30T16:41:42Z	Web Development
+3676	905096	CSS Animations: Create Amazing Effects on Your...	0.0	True	-0.196488	300	31	38	All Levels	3.0	2016-08-11T19:06:15Z	Web Development
+3677	297602	Using MODX CMS to Build Websites: A Beginner's...	0.0	True	-0.282312	901	36	20	Beginner Level	2.0	2014-09-28T19:51:11Z	Web Development
+3365 rows × 12 columns
+
+df
+course_id	course_title	Unnamed: 2	is_paid	price	num_subscribers	num_reviews	num_lectures	level	content_duration	published_timestamp	subject
+imputer = SimpleImputer(strategy='mean')
+data[['content_duration']] = imputer.fit_transform(data[['content_duration']])
+Q1 = data['content_duration'].quantile(0.25)
+Q3 = data['content_duration'].quantile(0.75)
+IQR = Q3 - Q1
+data = data[~((data['content_duration'] < (Q1 - 1.5 * IQR)) | (data['content_duration'] > (Q3 + 1.5 * IQR)))]
+scaler = StandardScaler() 
+data[['price']] = scaler.fit_transform(data[['price']])
+X = data.drop('num_reviews', axis=1)
+y = data['num_reviews']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+X_train.head()
+course_id	course_title	Unnamed: 2	is_paid	price	num_subscribers	num_lectures	level	content_duration	published_timestamp	subject
+3366	1194232	Learning Path: Akka: Building Applications and...	NaN	True	2.378213	88	55	Intermediate Level	4.5	2017-05-04T00:35:35Z	Web Development
+2152	1173716	Arpeggios for Guitar made Easy! Dominate the F...	NaN	True	0.060982	26	23	All Levels	3.0	2017-05-02T16:26:45Z	Musical Instruments
+546	429952	The Complete Financial Model Builder Course-Bu...	NaN	True	0.232629	214	88	All Levels	9.0	2015-03-19T19:00:23Z	Business Finance
+691	270844	IAS 1-Presentation of Financial Statements	NaN	False	-1.054722	2674	8	All Levels	1.0	2014-10-03T12:31:06Z	Business Finance
+639	1237912	Create Trading Robot Without Coding Skills!	NaN	True	1.434156	5	13	All Levels	1.0	2017-06-16T05:29:13Z	Business Finance
+y_train.head()
+3366     8
+2152     5
+546     20
+691     81
+639      0
+Name: num_reviews, dtype: int64
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import cross_val_score
+import numpy as np
+categorical_columns = X_train.select_dtypes(include=['object']).columns
+numeric_columns = X_train.select_dtypes(include=['number']).columns
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='mean')),  # Handle missing values
+        ]), numeric_columns),
+        ('cat', Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='most_frequent')),  # Handle missing values
+            ('onehot', OneHotEncoder(handle_unknown='ignore'))
+        ]), categorical_columns)
+    ]
+)
+pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('model', LinearRegression())
+])
+pipeline.fit(X_train, y_train)
+mse = cross_val_score(pipeline, X_train, y_train, scoring='neg_mean_squared_error', cv=5)
+mse_mean = np.mean(mse)
+
+print(f"Mean Negative MSE: {mse_mean}")
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+c:\Users\pasam\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\impute\_base.py:598: UserWarning: Skipping features without any observed values: ['Unnamed: 2']. At least one non-missing value is needed for imputation with strategy='mean'.
+  warnings.warn(
+Mean Negative MSE: -137473.68247443467
